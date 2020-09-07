@@ -1,3 +1,4 @@
+//注意：乘法的小数点未加上 
 #include <iostream>
 #include <stdio.h>
 #include <string>
@@ -16,6 +17,22 @@ bool xiaoyu(string a,string b) {			//用于判断代表数字的字符串a是否小于b(无小数点
 			else if(a[i]>b[i]) return false;  //按位对比
 		}
 	return false;                        //说明二者相等，不小于，false
+}
+bool xiaoshuxiaoyu(string a,string b){		//用于判断小数部分a是否小于b 
+	int la=a.size(),lb=b.size(),max;
+	if(la<=lb) max=lb;
+	else max=la;							//la,lb的大值
+	for(int i=0;i<max;i++){
+		int na,nb;
+		if(i<la) na=a[i];
+		else na=0;
+		if(i<lb) nb=b[i];
+		else nb=0;
+		if(na<nb) return true;
+		else if(nb<na) return false;
+		else continue;
+	}
+	return false;
 }
 string clear(string A) {    				//去除字符串前边的空零，字符串末的多余零，将多余的负号转化为单个或正号
 	int dian=0,dianwei;
@@ -50,7 +67,7 @@ string clear(string A) {    				//去除字符串前边的空零，字符串末的多余零，将多余
 	}
 	int sf=0,j;							//sf记录首个非0元素位置
 	if(a[0]=='-') j=1;
-	else j=0;
+	else j=0; 
 	for(; j<a.size(); j++) {
 		if(a[j]!='0') {
 			sf=j;
@@ -69,9 +86,10 @@ string clear(string A) {    				//去除字符串前边的空零，字符串末的多余零，将多余
 		}
 	}
 	if(ql) a="0";
+	if(a[0]=='.') a="0"+a;
 	return a;
 }
-string jiafa(string A,string B) {
+string jiafaz(string A,string B) {    //正数加法 
 	string a=A,b=B,a1="",a2="",b1="",b2="";     //用a与b代替A与B进行运算,a1、a2为a的小数点前后两部分，b1、b2同理
 	int diana,dianb,la1,la2,lb1,lb2; //diana,dianb用来记录a，b小数点位置，la1、la2记录a的小数点前和小数点后位置，lb1、lb2同理
 	int pa=0,pb=0;		//用于判断a,b是否有小数点
@@ -170,7 +188,7 @@ string jiafa(string A,string B) {
 	else jieguo=a1;						//假如结果是整数，则a2为0，小数点可以省略，直接返回a1
 	return jieguo;		//返回结果
 }
-string zhengshujian(string A,string B) {    //因减法的特殊性，将整数减法与小数减法分开编写
+string zhengshujian(string A,string B) {    //因减法的特殊性，将整数减法与小数减法分开编写（正的） 
 	string jieguo="";
 	string a=clear(A),b=clear(B);
 	int la=a.size(),lb=b.size();
@@ -182,12 +200,12 @@ string zhengshujian(string A,string B) {    //因减法的特殊性，将整数减法与小数减
 	}
 	if(a[0]=='-'&&b[0]!='-'){				//假如是负数减正数，则转化为负号加加法 
 		jieguo+="-";
-		jieguo+=jiafa(tiqu(a,1,a.size()-1),b);
+		jieguo+=jiafaz(tiqu(a,1,a.size()-1),b);
 		jieguo=clear(jieguo);
 		return jieguo;
 	}
 	if(a[0]!='-'&&b[0]=='-'){				//假如是正数减负数，则转化为加法 
-		jieguo+=jiafa(tiqu(b,1,b.size()-1),a);
+		jieguo+=jiafaz(tiqu(b,1,b.size()-1),a);
 		jieguo=clear(jieguo);
 		return jieguo;
 	}
@@ -217,11 +235,145 @@ string zhengshujian(string A,string B) {    //因减法的特殊性，将整数减法与小数减
 	jieguo=clear(jieguo);						//再次去首0 
 	return jieguo;
 }
+string xiaoshujian(string A,string B){			//小数点后的减法，即0.几减0.几 
+	string a=A,b=B;
+	if(a==b) return ".0";
+	int la=a.size(),lb=b.size(),max=la;
+	if(la>lb){
+		int tem=la-lb;
+		for(int i=0;i<tem;i++) b+="0";
+	}
+	else if(la<lb){
+		max=lb;
+		int tem=lb-la;
+		for(int i=0;i<tem;i++) a+="0";
+	}
+	la=a.size(),lb=b.size();
+	while(max>0){
+		int na=a[max-1]-'0',nb;
+		nb=b[max-1]-'0';
+		int sum=na-nb;
+		if(sum>=0){
+			a[max-1]='0'+sum;
+		}
+		else{
+			a[max-1]='0'+sum+10;
+			if(max!=1){
+				a[max-2]--;
+			}
+		}
+		max--;
+	}
+	string jieguo="."+a;			//注意返回结果有小数点
+	jieguo=clear(jieguo);
+	if(jieguo[0]=='0') jieguo=tiqu(jieguo,1,jieguo.size()-1);
+	return jieguo;
+}
+string jianfa(string A,string B){				//带小数的减法 
+	string a=clear(A),b=clear(B);
+	if(a[0]=='-'&&b[0]=='-'){					//负减负化为后减前 
+		return jianfa(tiqu(b,1,b.size()-1),tiqu(a,1,a.size()-1));
+	}
+	if(a[0]=='-'&&b[0]!='-'){					//负数减正数化为负加法 
+		string jieguo="-";
+		jieguo+=jiafaz(tiqu(a,1,a.size()-1),b);
+		return jieguo;
+	}
+	if(a[0]!='-'&&b[0]=='-'){					//正减负化为加法 
+		return jiafaz(a,tiqu(b,1,b.size()-1));
+	}
+	if(xiaoyu(a,b)){
+		string jieguo="-";
+		jieguo+=jianfa(b,a);
+		return jieguo;
+	}
+	int diana=0,dianb=0;
+	for(int i=1;i<a.size();i++) if(a[i]=='.'){
+		diana=i;
+		break;
+	}
+	for(int i=1;i<b.size();i++) if(b[i]=='.'){		//因为小数点不可能在第0位，所以i从1开始 
+		dianb=i;
+		break;
+	}
+	if(diana==0&&dianb==0) return zhengshujian(a,b);//整数减法 
+	if(diana!=0&&dianb==0){
+		b+=".0";
+		dianb=b.size()-2;
+	}
+	else if(dianb!=0&&diana==0){
+		a+=".0";				//若只有一个没有小数点，则加上小数点零
+		diana=a.size()-2;
+	}
+	string a1=tiqu(a,0,diana-1),a2=tiqu(a,diana+1,a.size()-1),b1=tiqu(b,0,dianb-1),b2=tiqu(b,dianb+1,b.size()-1);//分开前后
+	if(xiaoshuxiaoyu(a2,b2)) a1=zhengshujian(a1,"1");
+	string tem1,tem2=xiaoshujian(a2,b2);
+	tem1=zhengshujian(a1,b1);
+	string jieguo=tem1+tem2;
+	jieguo=clear(jieguo);
+	return jieguo;
+}
+string jiafa(string A,string B){			//用之前的正数加法与减法函数进行 
+	string a=A,b=B;
+	if(a[0]=='-'&&b[0]=='-'){			//负负相加等于负号加上正数加 
+		string jieguo="-";
+		jieguo+=jiafaz(tiqu(a,1,a.size()-1),tiqu(b,1,b.size()-1));
+		return jieguo;
+	}
+	if(a[0]=='-'&&b[0]!='-'){			//负正相加等于后减前 
+		return jianfa(b,tiqu(a,1,a.size()-1));
+	}
+	if(a[0]!='-'&&b[0]=='-'){			//正负相加等于前减后 
+		return jianfa(a,tiqu(b,1,b.size()-1));
+	}
+	if(a[0]!='-'&&b[0]!='-') return jiafaz(a,b);		//正正相加不用动 
+}
+string chengfa(string A,string B){				//乘法 
+	string a=clear(A),b=clear(b);
+	int dian=0;								//记录小数点后的位数 
+	for(int i=a.size()-1;i>=0;i--){
+		if(a[i]=='.'){
+			dian+=a.size()-1-i;
+			a=tiqu(a,0,dian-1)+tiqu(a,dian+1,a.size()-1);
+			break;
+		}
+	}
+	for(int i=b.size()-1;i>=0;i--){
+		if(b[i]=='.'){
+			dian+=b.size()-1-i;
+			b=tiqu(b,0,dian-1)+tiqu(b,dian+1,b.size()-1);
+			break;
+		}
+	}
+	int la=a.size(),lb=b.size(),max;
+	if(la>lb) max=la;
+	else max=lb;											//长度 
+	int na[max]={0},nb[max]={0},result[2*max]={0};
+	for(int i=la-1,j=0;i>=0;i--,j++)	na[j]=a[i]-'0';		//以int保存数值 
+	for(int i=lb-1,j=0;i>=0;i--,j++) 	nb[j]=b[i]-'0';		//以int保存数值 
+	for(int i=0;i<la;i++){							//每一位相乘 
+		for(int j=0;j<lb;j++) result[i+j]+=na[i]*nb[j];
+	}
+	for(int i=0;i<(la+lb);i++){					//进位 
+		if(result[i]>9){
+			result[i+1]+=result[i]/10;
+			result[i]&=10;						//向前一位进位，此位保留个位数 
+		}
+	}
+	int i;
+	for(i=la+lb;i>=0;i--){					//转化回字符串 
+		if(result[i]==0) continue;				//遇到0则停止 
+		else break;
+	}
+	string result_="";
+	for(;i>=0;i--) result_+=result[i];
+	return result_;
+}
 int main() {
 	string ceshi1,ceshi2,jieguo;
 	while(cin>>ceshi1>>ceshi2) {
 		if(ceshi1=="0"&&ceshi2=="0") break;
-		else jieguo=zhengshujian(ceshi1,ceshi2);
+		else jieguo=jianfa(ceshi1,ceshi2);
 		cout<<jieguo<<endl;
 	}
 	return 0;
