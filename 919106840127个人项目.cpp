@@ -5,10 +5,40 @@
 #include <windows.h>
 #include <stdlib.h>
 using namespace std;
+int jin;							//判断是否有禁手
 const int msize=20;					//棋盘长宽固定为20
 int x,y,hx1,hx2,hy1,hy2,num(0);		//x，y为每次输入的棋子的坐标，hx1，hy1保存给用户1悔棋，hy2，hx2给用户2悔棋，num回合数
 int scomap[20][20]= {0}; 			//给ai用来判断每个位置的价值
 char map[20][20];         			//每次画的棋盘
+bool nohand(int x,int y,char qi) {	//判断是否出现了禁手
+	if(jin==0) return false;
+	int ain(0),blankn(0),four(0),five(0);		//four和five分别代表下了该棋后出现的活/冲四和五的数量，超过一个则禁手
+	for(int mx=-1; mx<2; mx++) {
+		for(int my=-1; my<2; my++) {		//八个方向
+			ain=0;
+			blankn=0;
+			if(mx==0&&my==0) continue;  //排除自己本身
+			for(int k=1; k<=4; k++) {				//每个方向共4个位置
+				if(x+mx*k>=0&&x+mx*k<msize&&y+my*k>=0&&y+my*k<msize&&map[x+mx*k][y+my*k]==qi) ain++;//自己方的棋
+				else if(x+mx*k>=0&&x+mx*k<msize&&y+my*k>=0&&y+my*k<msize&&map[x+mx*k][y+my*k]=='+') {		//空格
+					blankn++;
+					break;
+				} else break;						//超过边界或者被敌方棋子卡住
+			}
+			for(int k=1; k<=4; k++) {				//每个方向共4个位置(相反方向)
+				if(x-mx*k>=0&&x-mx*k<msize&&y-my*k>=0&&y-my*k<msize&&map[x-mx*k][y-my*k]==qi) ain++;//自己方的棋
+				else if(x-mx*k>=0&&x-mx*k<msize&&y-my*k>=0&&y-my*k<msize&&map[x-mx*k][y-my*k]=='+') {		//空格
+					blankn++;
+					break;
+				} else break;						//超过边界或者被敌方棋子卡住
+			}
+			if(ain==4&&(blankn==1||blankn==2)) five++;  //活五和冲五
+			else if(ain==3&&(blankn==1||blankn==2)) four++;   //活四和眠四
+		}
+	}
+	if(four>=4||five>=4) return true;					//八个方向会将判断禁手的情况算两遍，所以大于等于4 
+	else return false;
+}
 bool legitimate(int X,int Y) {		//判断落子位置是否合法
 	if(X<0||X>=20||Y<0||Y>=20||map[X][Y]!='+') return false;
 	else return true;
@@ -72,6 +102,10 @@ void peoinput(int peo) {
 	if(peo==1) cout<<"Gamer 1's x and y :";
 	else cout<<"Gamer 2's x and y :";
 	cin>>x>>y;
+	while(peo==1&&nohand(x,y,'H')) {
+		cout<<"Nohand!!!\n"<<endl<<"Please input again : ";
+		cin>>x>>y;
+	}
 	if(x==-1&&y==-1) {				//假如x，y都是-1，则悔棋
 		map[hx1][hy1]='+';
 		map[hx2][hy2]='+';			//还原上一步的棋盘
@@ -79,8 +113,16 @@ void peoinput(int peo) {
 		cout<<"Please input again : "<<endl;		//重新输入
 		cin>>x>>y;
 	}
-	if(!(legitimate(x,y))) {
+	while(peo==1&&nohand(x,y,'H')) {
+		cout<<"Nohand!!!\n"<<endl<<"Please input again : ";
+		cin>>x>>y;
+	}
+	if(!legitimate(x,y)) {
 		cout<<"What you have input is not correct."<<endl<<"Please input again : ";
+		cin>>x>>y;
+	}
+	while(peo==1&&nohand(x,y,'H')) {
+		cout<<"Nohand!!!\n"<<endl<<"Please input again : ";
 		cin>>x>>y;
 	}
 	if(x==-1&&y==-1) {				//假如x，y再次都是-1，则再次悔棋
@@ -88,6 +130,10 @@ void peoinput(int peo) {
 		map[hx2][hy2]='+';			//还原上一步的棋盘
 		printmap();
 		cout<<"Please input again : "<<endl;		//重新输入
+		cin>>x>>y;
+	}
+	while(peo==1&&nohand(x,y,'H')) {
+		cout<<"Nohand!!!\n"<<endl<<"Please input again : ";
 		cin>>x>>y;
 	}
 	if(num==1) {
@@ -112,6 +158,10 @@ void valuemap(char qi) {				//定义scomap数组每一个空位的下棋价值,qi是棋色
 	for(int i=0; i<msize; i++) {		//开始计算价值，采用网上比较流行的加权法，分为进攻、防守两种情况
 		for(int j=0; j<msize; j++) {
 			if(legitimate(i,j)&&map[i][j]=='+') {			//只有合法位置的空位才考虑
+				if(qi=='H'&&nohand(i,j,'H')) {
+					scomap[i][j]=-1;
+					continue;
+				}
 				for(int mx=-1; mx<2; mx++) {
 					for(int my=-1; my<2; my++) {				//一共八个方向
 						enin=0;
@@ -184,10 +234,10 @@ void valuemap(char qi) {				//定义scomap数组每一个空位的下棋价值,qi是棋色
 						if(enin>=5)	scomap[i][j]=99999; 						//六连分最高
 						else if(enin==4) {
 							if(blankn==2) {					//活五
-								scomap[i][j]=91000;
+								scomap[i][j]=93000;
 								if(qi=='O') scomap[i][j]+=100;		//白棋ai后手，防御加权，但对5棋的防御仍应该低于进攻
 							} else if(blankn==1) {				//冲五
-								scomap[i][j]=89999;
+								scomap[i][j]=91000;
 								if(qi=='O') scomap[i][j]+=100;
 							}
 						} else if(enin==3) {
@@ -344,7 +394,7 @@ void eve() {							//观看机机对战
 		aiinput(1);					//电脑1下棋
 		upload(x,y,1);
 		printmap();
-		Sleep(1000);
+		
 		if(win(x,y)) {
 			cout<<"The computer 1 has won!!! Congratulation!!!\n";
 			clear();
@@ -353,7 +403,7 @@ void eve() {							//观看机机对战
 		aiinput(2);					//电脑2下棋
 		upload(x,y,2);
 		printmap();
-		Sleep(1000);
+		
 		if(win(x,y)) {
 			cout<<"The computer 1 has won!!! Congratulation!!!\n";
 			clear();
@@ -367,6 +417,9 @@ void eve() {							//观看机机对战
 	}
 }
 int main() {
+	cout<<"Do you want to have nohand? Please input 1 or 0 : ";			//选择是否有禁手
+	cin>>jin;
+	cout<<endl;
 	while(1) {						//可循环输入进行游戏
 		clear();						//首先初始化地图
 		cout<<"Which model is what you want?\n";
